@@ -148,6 +148,42 @@
   font-style: italic;
 }
 
+/* Lookup ? button */
+.bpo-lookup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(100, 120, 255, 0.15);
+  border: 1px solid rgba(100, 120, 255, 0.3);
+  color: #60a5fa;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 4px 0;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.bpo-lookup-btn:hover {
+  background: rgba(100, 120, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.bpo-lookup-btn.bpo-loading {
+  opacity: 0.5;
+  cursor: wait;
+  animation: bpo-pulse 1s infinite;
+}
+
+@keyframes bpo-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
 /* Retry button */
 .bpo-retry-btn {
   cursor: pointer;

@@ -202,9 +202,9 @@ function truncate(str, len) {
 }
 
 /**
- * Process a single card tile.
+ * Inject the ? lookup button onto a card tile.
  */
-async function processTile(tile) {
+function injectLookupButton(tile) {
   if (processedTiles.has(tile)) return;
   processedTiles.add(tile);
 
@@ -212,63 +212,91 @@ async function processTile(tile) {
   if (!title) return;
 
   const parsed = parseCardTitle(title);
-  if (!parsed) {
-    console.warn('[BoxedOverlay] Could not parse title:', title);
-    return;
-  }
-  console.log('[BoxedOverlay] Parsed:', parsed.cardName, '#' + parsed.cardNumber, parsed.gradeCompany, parsed.gradeValue, '| confidence:', parsed.confidence, '| raw:', title.substring(0, 80));
+  if (!parsed) return;
 
-  // Try to replace the "Pokémon (English)" / "Pokémon (Japanese)" bar with the overlay
-  // Look for the language indicator element
+  // Find the language bar to place the button
   const langBar = tile.querySelector('.text-light-2');
   const langParent = langBar ? langBar.closest('div, span, p') : null;
   
-  const loadingOverlay = createOverlayElement({ status: 'loading' }, parsed);
+  // Create the ? button
+  const btn = document.createElement('div');
+  btn.className = 'bpo-lookup-btn';
+  btn.textContent = '?';
+  btn.title = 'Look up prices';
   
   if (langParent && langParent !== tile) {
-    // Replace the language bar's parent container with our overlay
-    langParent.parentNode.insertBefore(loadingOverlay, langParent);
+    langParent.parentNode.insertBefore(btn, langParent);
     langParent.style.display = 'none';
-    loadingOverlay._hiddenLangBar = langParent;
+    btn._hiddenLangBar = langParent;
   } else if (langBar) {
-    // Replace just the language span area
-    langBar.parentNode.insertBefore(loadingOverlay, langBar);
+    langBar.parentNode.insertBefore(btn, langBar);
     langBar.style.display = 'none';
-    loadingOverlay._hiddenLangBar = langBar;
+    btn._hiddenLangBar = langBar;
   } else {
-    // Fallback: append to card
-    tile.appendChild(loadingOverlay);
+    tile.appendChild(btn);
   }
-
-  try {
-    // Resolve prices
-    const result = await resolvePrices(parsed);
+  
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     
-    // Replace loading overlay with real data
-    const realOverlay = createOverlayElement(result, parsed);
-    realOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
-    loadingOverlay.replaceWith(realOverlay);
+    // Replace ? with loading
+    btn.textContent = '…';
+    btn.classList.add('bpo-loading');
     
-    // Wire retry button on successful overlays
-    const retryBtn = realOverlay.querySelector('.bpo-retry-btn');
-    if (retryBtn && !retryBtn._wired) {
-      retryBtn._wired = true;
-      retryBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const cacheKey = makeCacheKey(parsed);
-        await chrome.storage.local.remove(cacheKey);
-        const parentTile = realOverlay.closest('.marketplace-grid > *') || realOverlay.parentElement;
-        if (realOverlay._hiddenLangBar) realOverlay._hiddenLangBar.style.display = '';
-        realOverlay.remove();
-        processedTiles.delete(parentTile);
-        processTile(parentTile);
-      });
+    try {
+      const result = await resolvePrices(parsed);
+      const overlay = createOverlayElement(result, parsed);
+      overlay._hiddenLangBar = btn._hiddenLangBar;
+      btn.replaceWith(overlay);
+      
+      // Wire retry/refresh button
+      wireRetryButton(overlay, parsed);
+    } catch (err) {
+      console.error('[BoxedOverlay] Error:', err);
+      const overlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
+      overlay._hiddenLangBar = btn._hiddenLangBar;
+      btn.replaceWith(overlay);
+      wireRetryButton(overlay, parsed);
     }
-  } catch (err) {
-    console.error('[BoxedOverlay] Error processing tile:', err);
-    const errorOverlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
-    loadingOverlay.replaceWith(errorOverlay);
+  });
+}
+
+/**
+ * Wire the retry/refresh button on an overlay.
+ */
+function wireRetryButton(overlay, parsed) {
+  const retryBtn = overlay.querySelector('.bpo-retry-btn');
+  if (retryBtn && !retryBtn._wired) {
+    retryBtn._wired = true;
+    retryBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const cacheKey = makeCacheKey(parsed);
+      await chrome.storage.local.remove(cacheKey);
+      
+      // Replace overlay with loading state
+      overlay.innerHTML = '<span class="bpo-loading-text">Loading prices…</span>';
+      overlay.classList.add('bpo-loading');
+      
+      try {
+        const result = await resolvePrices(parsed);
+        const newOverlay = createOverlayElement(result, parsed);
+        newOverlay._hiddenLangBar = overlay._hiddenLangBar;
+        overlay.replaceWith(newOverlay);
+        wireRetryButton(newOverlay, parsed);
+      } catch (err) {
+        overlay.innerHTML = '<span class="bpo-no-match">Retry failed</span>';
+        overlay.classList.remove('bpo-loading');
+      }
+    });
   }
+}
+
+/**
+ * Legacy function name — now just injects the ? button.
+ */
+async function processTile(tile) {
+  injectLookupButton(tile);
 }
 
 /**
