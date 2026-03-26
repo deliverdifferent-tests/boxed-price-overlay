@@ -56,21 +56,56 @@ function parseCardTitle(rawTitle) {
     result.language = 'English'; // default assumption
   }
 
-  // --- Extract card number ---
-  const cardNumMatch = title.match(/#(\d+)/);
-  if (cardNumMatch) {
-    result.cardNumber = cardNumMatch[1];
-  }
-
-  // --- Extract grading company and grade ---
+  // --- Extract grading company and grade (MUST come before card number) ---
+  // Grade is always near the end of the title: "PSA 10 GEM MINT", "CGC 9.5"
+  // Search from the END of the string to avoid matching set numbers
   for (const company of GRADE_COMPANIES) {
-    const gradeRegex = new RegExp(`\\b${company}\\s+(\\d+(?:\\.\\d+)?)\\b`, 'i');
+    // Match company + grade, possibly followed by fluff like GEM MINT
+    const gradeRegex = new RegExp(`\\b(${company})\\s+(\\d+(?:\\.\\d+)?)\\s*(?:${GRADE_FLUFF.join('|')})?\\s*$`, 'i');
     const gradeMatch = title.match(gradeRegex);
     if (gradeMatch) {
-      result.gradeCompany = company.toUpperCase();
-      result.gradeValue = parseFloat(gradeMatch[1]);
+      result.gradeCompany = gradeMatch[1].toUpperCase();
+      result.gradeValue = parseFloat(gradeMatch[2]);
       break;
     }
+  }
+
+  // If end-anchored match failed, try unanchored but only match the LAST occurrence
+  if (!result.gradeCompany) {
+    for (const company of GRADE_COMPANIES) {
+      const gradeRegex = new RegExp(`\\b(${company})\\s+(\\d+(?:\\.\\d+)?)\\b`, 'gi');
+      let lastMatch = null;
+      let m;
+      while ((m = gradeRegex.exec(title)) !== null) {
+        lastMatch = m;
+      }
+      if (lastMatch) {
+        result.gradeCompany = lastMatch[1].toUpperCase();
+        result.gradeValue = parseFloat(lastMatch[2]);
+        break;
+      }
+    }
+  }
+
+  // --- Extract card number ---
+  // Card number uses # prefix. Must NOT be the same as the grade value.
+  const cardNumMatches = [...title.matchAll(/#(\d+)/g)];
+  if (cardNumMatches.length > 0) {
+    // Use the last #number that appears BEFORE the grade company
+    const gradePos = result.gradeCompany 
+      ? title.lastIndexOf(result.gradeCompany) 
+      : title.length;
+    
+    let bestMatch = null;
+    for (const m of cardNumMatches) {
+      if (m.index < gradePos) {
+        bestMatch = m;
+      }
+    }
+    // Fallback to first match if none before grade
+    if (!bestMatch) bestMatch = cardNumMatches[0];
+    
+    result.cardNumber = bestMatch[1];
   }
 
   // --- Extract card name and set ---
