@@ -3,7 +3,7 @@
   "name": "Boxed Price Overlay",
   "version": "1.0.0",
   "description": "Overlays PriceCharting prices on Boxed.gg marketplace cards",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs", "scripting"],
   "host_permissions": [
     "https://boxed.gg/*",
     "https://www.boxed.gg/*",
