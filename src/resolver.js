@@ -62,7 +62,7 @@ function makeCacheKey(parsed) {
  * Returns a price result object.
  */
 async function resolvePrices(parsed) {
-  if (!parsed || parsed.confidence === 'weak') {
+  if (!parsed) {
     return { status: 'no_match', confidence: 'weak', prices: {} };
   }
 
@@ -83,10 +83,34 @@ async function resolvePrices(parsed) {
     });
 
     if (!response || !response.ok) {
-      return { status: 'error', confidence: 'weak', prices: {}, sourceUrl: searchUrl };
+      console.warn('[BoxedOverlay] Fetch failed for:', searchUrl, response?.status, response?.error);
+      // Still return a usable result with the search link
+      const fallback = { 
+        status: 'search_only', 
+        confidence: parsed.confidence || 'weak', 
+        prices: {}, 
+        sourceUrl: searchUrl,
+        matchedTitle: null
+      };
+      await setCache(cacheKey, fallback);
+      return fallback;
     }
 
     const html = response.body;
+    
+    // Check if we got a real page or a block/captcha
+    if (!html || html.length < 500 || html.includes('captcha') || html.includes('Access Denied')) {
+      console.warn('[BoxedOverlay] PriceCharting may be blocking requests');
+      const fallback = { 
+        status: 'search_only', 
+        confidence: parsed.confidence || 'weak', 
+        prices: {}, 
+        sourceUrl: searchUrl,
+        matchedTitle: null
+      };
+      await setCache(cacheKey, fallback);
+      return fallback;
+    }
     
     // Parse the search results page
     const result = parseSearchResults(html, parsed);
@@ -94,12 +118,15 @@ async function resolvePrices(parsed) {
     
     // If we got a direct product page URL, fetch that too for detailed prices
     if (result.productUrl) {
+      // Small delay to be polite
+      await new Promise(r => setTimeout(r, 500));
+      
       const productResponse = await chrome.runtime.sendMessage({
         type: 'FETCH_URL',
         url: result.productUrl
       });
       
-      if (productResponse && productResponse.ok) {
+      if (productResponse && productResponse.ok && productResponse.body && productResponse.body.length > 500) {
         const detailedPrices = parseProductPage(productResponse.body, parsed);
         result.prices = { ...result.prices, ...detailedPrices };
         result.sourceUrl = result.productUrl;
@@ -112,7 +139,7 @@ async function resolvePrices(parsed) {
     return result;
   } catch (e) {
     console.error('[BoxedOverlay] Resolve error:', e);
-    return { status: 'error', confidence: 'weak', prices: {}, sourceUrl: searchUrl };
+    return { status: 'search_only', confidence: 'weak', prices: {}, sourceUrl: searchUrl };
   }
 }
 

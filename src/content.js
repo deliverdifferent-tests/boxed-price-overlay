@@ -82,13 +82,16 @@ function createOverlayElement(result, parsed) {
     return overlay;
   }
 
-  if (result.status === 'error') {
-    overlay.classList.add('bpo-error');
+  if (result.status === 'error' || result.status === 'search_only') {
+    const searchQuery = buildSearchQuery(parsed);
+    const pcUrl = result.sourceUrl || buildPriceChartingSearchUrl(parsed);
+    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery + ' site:pricecharting.com')}`;
+    
     overlay.innerHTML = `
-      <span class="bpo-no-match">Price lookup failed</span>
-      <div class="bpo-footer">
-        <span class="bpo-confidence bpo-weak">error</span>
-        ${result.sourceUrl ? `<a class="bpo-source-link" href="${result.sourceUrl}" target="_blank" rel="noopener">Search manually ↗</a>` : ''}
+      <div class="bpo-footer" style="border-top:none;padding-top:0;">
+        <span class="bpo-confidence bpo-weak">${parsed.confidence || 'lookup'}</span>
+        <a class="bpo-source-link" href="${pcUrl}" target="_blank" rel="noopener">PriceCharting ↗</a>
+        <a class="bpo-source-link" href="${googleUrl}" target="_blank" rel="noopener">Google ↗</a>
       </div>
     `;
     return overlay;
@@ -191,14 +194,9 @@ async function processTile(tile) {
   const parsed = parseCardTitle(title);
   if (!parsed) return;
 
-  // Find insertion point — after the title element
-  const titleNode = tile.querySelector('.line-clamp-3');
-  const insertAfter = titleNode || tile.firstElementChild;
-  if (!insertAfter) return;
-
-  // Create loading overlay
+  // Append overlay to the bottom of the card tile (not inline with text)
   const loadingOverlay = createOverlayElement({ status: 'loading' }, parsed);
-  insertAfter.parentNode.insertBefore(loadingOverlay, insertAfter.nextSibling);
+  tile.appendChild(loadingOverlay);
 
   try {
     // Resolve prices
