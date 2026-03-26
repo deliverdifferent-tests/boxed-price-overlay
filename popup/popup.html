@@ -57,6 +57,52 @@
     .btn.danger:hover {
       background: rgba(239,68,68,0.2);
     }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+    }
+    .toggle-label {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #333;
+      border-radius: 22px;
+      transition: 0.2s;
+    }
+    .slider:before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: #999;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch input:checked + .slider {
+      background: rgba(74, 222, 128, 0.3);
+    }
+    .switch input:checked + .slider:before {
+      transform: translateX(18px);
+      background: #4ade80;
+    }
     .version {
       text-align: center;
       color: #555;
@@ -68,6 +114,14 @@
 <body>
   <h1>📊 Boxed Price Overlay</h1>
   
+  <div class="toggle-row">
+    <span class="toggle-label">Extension</span>
+    <label class="switch">
+      <input type="checkbox" id="enabled-toggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
   <div class="stats">
     <div class="stat-row">
       <span class="stat-label">Cached lookups</span>

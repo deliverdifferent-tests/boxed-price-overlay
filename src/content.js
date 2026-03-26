@@ -17,6 +17,12 @@ const BATCH_DELAY_MS = 1200;
 
 let processedTiles = new WeakSet();
 let scanTimeout = null;
+let extensionEnabled = true;
+
+// Load saved enabled state
+chrome.storage.local.get('bpo_enabled', (data) => {
+  extensionEnabled = data.bpo_enabled !== false;
+});
 
 /**
  * Find the marketplace grid container.
@@ -224,6 +230,8 @@ async function scanAndProcess() {
   }
 
   const tiles = findCardTiles(grid);
+  if (!extensionEnabled) return;
+
   const unprocessed = tiles.filter(t => !processedTiles.has(t));
   
   if (unprocessed.length === 0) return;
@@ -297,12 +305,28 @@ function init() {
   }, { passive: true });
 }
 
-// Listen for rescan message from popup
+// Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'RESCAN') {
     processedTiles = new WeakSet();
     document.querySelectorAll('.bpo-overlay').forEach(el => el.remove());
-    scanAndProcess();
+    if (extensionEnabled) scanAndProcess();
+    sendResponse({ ok: true });
+  }
+  if (message.type === 'SET_ENABLED') {
+    extensionEnabled = message.enabled;
+    if (!extensionEnabled) {
+      // Hide all overlays
+      document.querySelectorAll('.bpo-overlay').forEach(el => {
+        el.style.display = 'none';
+      });
+    } else {
+      // Show overlays and rescan for new ones
+      document.querySelectorAll('.bpo-overlay').forEach(el => {
+        el.style.display = '';
+      });
+      scanAndProcess();
+    }
     sendResponse({ ok: true });
   }
 });
