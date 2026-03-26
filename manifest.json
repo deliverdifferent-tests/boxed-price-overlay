@@ -12,7 +12,7 @@
   "content_scripts": [
     {
       "matches": ["https://boxed.gg/marketplace*", "https://www.boxed.gg/marketplace*"],
-      "js": ["src/parser.js", "src/resolver.js", "src/content.js"],
+      "js": ["src/parser.js", "src/resolver.js", "src/content.js", "src/scanner.js"],
       "css": ["src/overlay.css"],
       "run_at": "document_idle"
     }

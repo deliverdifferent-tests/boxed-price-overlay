@@ -214,6 +214,149 @@
   opacity: 1;
 }
 
+/* Deal badge on card */
+.bpo-deal-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.bpo-deal-badge.bpo-deal-good {
+  background: rgba(34, 197, 94, 0.9);
+  color: #fff;
+}
+
+.bpo-deal-badge.bpo-deal-bad {
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+}
+
+.bpo-deal-spread {
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* Floating leaderboard */
+.bpo-leaderboard {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 280px;
+  background: rgba(15, 15, 30, 0.96);
+  border: 1px solid rgba(100, 120, 255, 0.3);
+  border-radius: 8px;
+  z-index: 99999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  color: #e0e0e0;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.bpo-lb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(100, 120, 255, 0.1);
+  border-bottom: 1px solid rgba(100, 120, 255, 0.15);
+  user-select: none;
+}
+
+.bpo-lb-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: #60a5fa;
+}
+
+.bpo-lb-minimize {
+  cursor: pointer;
+  color: #999;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.bpo-lb-minimize:hover {
+  color: #fff;
+}
+
+.bpo-lb-body {
+  padding: 8px;
+}
+
+.bpo-lb-stats {
+  font-size: 10px;
+  color: #888;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.bpo-lb-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.bpo-lb-deal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.bpo-lb-deal:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.bpo-lb-rank {
+  color: #fbbf24;
+  font-weight: 700;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.bpo-lb-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.bpo-lb-pct {
+  color: #4ade80;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.bpo-lb-spread {
+  color: #4ade80;
+  font-size: 10px;
+  flex-shrink: 0;
+  width: 45px;
+  text-align: right;
+}
+
+.bpo-lb-empty {
+  color: #666;
+  font-style: italic;
+  font-size: 11px;
+  text-align: center;
+  padding: 8px;
+}
+
 /* Separator */
 .bpo-sep {
   color: #333;

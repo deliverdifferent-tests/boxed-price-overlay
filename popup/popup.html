@@ -133,10 +133,34 @@
     </div>
   </div>
 
+  <div class="toggle-row">
+    <span class="toggle-label">🔥 Deal Scanner</span>
+    <label class="switch">
+      <input type="checkbox" id="scanner-toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="stats" id="gem-settings" style="display:none;">
+    <div class="stat-row">
+      <span class="stat-label">Gems = $</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="gem-amount" value="2500" style="width:60px;background:#2a2a3e;border:1px solid #444;color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:11px;text-align:right;">
+        <span style="color:#666;">=</span>
+        <span style="color:#666;">$</span>
+        <input type="number" id="usd-amount" value="20" style="width:45px;background:#2a2a3e;border:1px solid #444;color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:11px;text-align:right;">
+      </div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Rate</span>
+      <span class="stat-value" id="gem-rate-display">1 gem = $0.008</span>
+    </div>
+  </div>
+
   <button class="btn" id="rescan-btn">🔄 Rescan Page</button>
   <button class="btn danger" id="clear-cache-btn">🗑 Clear Cache</button>
   
-  <div class="version">v1.0.0 · PriceCharting data</div>
+  <div class="version">v1.1.0 · PriceCharting data</div>
 
   <script src="popup.js"></script>
 </body>
