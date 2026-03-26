@@ -211,8 +211,9 @@ function truncate(str, len) {
 
 /**
  * Inject the ? lookup button onto a card tile.
+ * If the card is already cached, show prices immediately.
  */
-function injectLookupButton(tile) {
+async function injectLookupButton(tile) {
   if (processedTiles.has(tile)) return;
   processedTiles.add(tile);
 
@@ -222,27 +223,44 @@ function injectLookupButton(tile) {
   const parsed = parseCardTitle(title);
   if (!parsed) return;
 
-  // Find the language bar to place the button
+  // Find the language bar to place the button/overlay
   const langBar = tile.querySelector('.text-light-2');
   const langParent = langBar ? langBar.closest('div, span, p') : null;
+  let hiddenLangBar = null;
   
-  // Create the ? button
+  function insertElement(el) {
+    if (langParent && langParent !== tile) {
+      langParent.parentNode.insertBefore(el, langParent);
+      langParent.style.display = 'none';
+      hiddenLangBar = langParent;
+    } else if (langBar) {
+      langBar.parentNode.insertBefore(el, langBar);
+      langBar.style.display = 'none';
+      hiddenLangBar = langBar;
+    } else {
+      tile.appendChild(el);
+    }
+    el._hiddenLangBar = hiddenLangBar;
+  }
+  
+  // Check cache first — if cached, show prices immediately
+  const cacheKey = makeCacheKey(parsed);
+  const cached = await getCached(cacheKey);
+  
+  if (cached && cached.status === 'ok' && cached.prices && Object.keys(cached.prices).length > 0) {
+    // Cached! Show overlay directly, no click needed
+    const overlay = createOverlayElement(cached, parsed);
+    insertElement(overlay);
+    wireRetryButton(overlay, parsed);
+    return;
+  }
+  
+  // Not cached — show ? button
   const btn = document.createElement('div');
   btn.className = 'bpo-lookup-btn';
   btn.textContent = '?';
   btn.title = 'Look up prices';
-  
-  if (langParent && langParent !== tile) {
-    langParent.parentNode.insertBefore(btn, langParent);
-    langParent.style.display = 'none';
-    btn._hiddenLangBar = langParent;
-  } else if (langBar) {
-    langBar.parentNode.insertBefore(btn, langBar);
-    langBar.style.display = 'none';
-    btn._hiddenLangBar = langBar;
-  } else {
-    tile.appendChild(btn);
-  }
+  insertElement(btn);
   
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -257,8 +275,6 @@ function injectLookupButton(tile) {
       const overlay = createOverlayElement(result, parsed);
       overlay._hiddenLangBar = btn._hiddenLangBar;
       btn.replaceWith(overlay);
-      
-      // Wire retry/refresh button
       wireRetryButton(overlay, parsed);
     } catch (err) {
       console.error('[BoxedOverlay] Error:', err);
