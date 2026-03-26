@@ -1,0 +1,151 @@
+/* Boxed Price Overlay — injected styles */
+
+.bpo-overlay {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(15, 15, 30, 0.92);
+  border: 1px solid rgba(100, 120, 255, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #e0e0e0;
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 10;
+}
+
+.bpo-overlay.bpo-loading {
+  opacity: 0.6;
+}
+
+.bpo-overlay.bpo-error {
+  border-color: rgba(255, 80, 80, 0.3);
+}
+
+/* Price row */
+.bpo-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 4px;
+}
+
+.bpo-price-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.bpo-price-label {
+  color: #999;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.bpo-price-value {
+  color: #4ade80;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.bpo-price-value.bpo-primary {
+  color: #60a5fa;
+  font-size: 12px;
+}
+
+.bpo-price-value.bpo-na {
+  color: #666;
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Footer row */
+.bpo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Confidence badge */
+.bpo-confidence {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.bpo-confidence.bpo-exact {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.bpo-confidence.bpo-likely {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.bpo-confidence.bpo-weak {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.bpo-confidence.bpo-no_match {
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+}
+
+/* Source link */
+.bpo-source-link {
+  font-size: 10px;
+  color: #60a5fa;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.bpo-source-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Loading state */
+.bpo-loading-text {
+  color: #999;
+  font-size: 10px;
+  font-style: italic;
+}
+
+/* Compact mode for small tiles */
+.bpo-overlay.bpo-compact .bpo-prices {
+  gap: 2px 6px;
+}
+
+.bpo-overlay.bpo-compact .bpo-price-label {
+  font-size: 9px;
+}
+
+.bpo-overlay.bpo-compact .bpo-price-value {
+  font-size: 10px;
+}
+
+/* No match state */
+.bpo-no-match {
+  color: #666;
+  font-size: 10px;
+  font-style: italic;
+}
+
+/* Separator */
+.bpo-sep {
+  color: #333;
+  margin: 0 2px;
+}

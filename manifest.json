@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Boxed Price Overlay",
+  "version": "1.0.0",
+  "description": "Overlays PriceCharting prices on Boxed.gg marketplace cards",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://boxed.gg/*",
+    "https://www.boxed.gg/*",
+    "https://www.pricecharting.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://boxed.gg/marketplace*", "https://www.boxed.gg/marketplace*"],
+      "js": ["src/parser.js", "src/resolver.js", "src/content.js"],
+      "css": ["src/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "icons/icon48.png"
+  }
+}
