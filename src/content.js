@@ -198,11 +198,33 @@ async function processTile(tile) {
   if (!title) return;
 
   const parsed = parseCardTitle(title);
-  if (!parsed) return;
+  if (!parsed) {
+    console.warn('[BoxedOverlay] Could not parse title:', title);
+    return;
+  }
+  console.log('[BoxedOverlay] Parsed:', parsed.cardName, '#' + parsed.cardNumber, parsed.gradeCompany, parsed.gradeValue, '| confidence:', parsed.confidence, '| raw:', title.substring(0, 80));
 
-  // Append overlay to the bottom of the card tile (not inline with text)
+  // Try to replace the "Pokémon (English)" / "Pokémon (Japanese)" bar with the overlay
+  // Look for the language indicator element
+  const langBar = tile.querySelector('.text-light-2');
+  const langParent = langBar ? langBar.closest('div, span, p') : null;
+  
   const loadingOverlay = createOverlayElement({ status: 'loading' }, parsed);
-  tile.appendChild(loadingOverlay);
+  
+  if (langParent && langParent !== tile) {
+    // Replace the language bar's parent container with our overlay
+    langParent.parentNode.insertBefore(loadingOverlay, langParent);
+    langParent.style.display = 'none';
+    loadingOverlay._hiddenLangBar = langParent;
+  } else if (langBar) {
+    // Replace just the language span area
+    langBar.parentNode.insertBefore(loadingOverlay, langBar);
+    langBar.style.display = 'none';
+    loadingOverlay._hiddenLangBar = langBar;
+  } else {
+    // Fallback: append to card
+    tile.appendChild(loadingOverlay);
+  }
 
   try {
     // Resolve prices
@@ -210,6 +232,7 @@ async function processTile(tile) {
     
     // Replace loading overlay with real data
     const realOverlay = createOverlayElement(result, parsed);
+    realOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
     loadingOverlay.replaceWith(realOverlay);
   } catch (err) {
     console.error('[BoxedOverlay] Error processing tile:', err);
@@ -316,14 +339,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SET_ENABLED') {
     extensionEnabled = message.enabled;
     if (!extensionEnabled) {
-      // Hide all overlays
+      // Hide all overlays, restore language bars
       document.querySelectorAll('.bpo-overlay').forEach(el => {
         el.style.display = 'none';
+        if (el._hiddenLangBar) el._hiddenLangBar.style.display = '';
       });
     } else {
-      // Show overlays and rescan for new ones
+      // Show overlays, hide language bars again
       document.querySelectorAll('.bpo-overlay').forEach(el => {
         el.style.display = '';
+        if (el._hiddenLangBar) el._hiddenLangBar.style.display = 'none';
       });
       scanAndProcess();
     }
