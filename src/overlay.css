@@ -148,6 +148,19 @@
   font-style: italic;
 }
 
+/* Retry button */
+.bpo-retry-btn {
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  user-select: none;
+}
+
+.bpo-retry-btn:hover {
+  opacity: 1;
+}
+
 /* Separator */
 .bpo-sep {
   color: #333;

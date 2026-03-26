@@ -89,17 +89,30 @@ function createOverlayElement(result, parsed) {
   }
 
   if (result.status === 'error' || result.status === 'search_only') {
-    const searchQuery = buildSearchQuery(parsed);
     const pcUrl = result.sourceUrl || buildPriceChartingSearchUrl(parsed);
-    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery + ' site:pricecharting.com')}`;
     
     overlay.innerHTML = `
       <div class="bpo-footer" style="border-top:none;padding-top:0;">
         <span class="bpo-confidence bpo-weak">${parsed.confidence || 'lookup'}</span>
         <a class="bpo-source-link" href="${pcUrl}" target="_blank" rel="noopener">PriceCharting ↗</a>
-        <a class="bpo-source-link" href="${googleUrl}" target="_blank" rel="noopener">Google ↗</a>
+        <span class="bpo-retry-btn" title="Retry lookup">🔄</span>
       </div>
     `;
+    
+    // Wire retry button
+    overlay.querySelector('.bpo-retry-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      // Clear this card's cache
+      const cacheKey = makeCacheKey(parsed);
+      await chrome.storage.local.remove(cacheKey);
+      // Remove overlay and re-process
+      const tile = overlay.closest('.marketplace-grid > *') || overlay.parentElement;
+      if (overlay._hiddenLangBar) overlay._hiddenLangBar.style.display = '';
+      overlay.remove();
+      processedTiles.delete(tile);
+      processTile(tile);
+    });
+    
     return overlay;
   }
 
@@ -162,6 +175,7 @@ function createOverlayElement(result, parsed) {
       <span class="bpo-confidence bpo-${confidenceClass}">${confidenceClass}</span>
       ${result.matchedTitle ? `<span style="font-size:9px;color:#666;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 4px;" title="${escapeHtml(result.matchedTitle)}">${escapeHtml(truncate(result.matchedTitle, 30))}</span>` : ''}
       <a class="bpo-source-link" href="${sourceUrl}" target="_blank" rel="noopener">PriceCharting ↗</a>
+      <span class="bpo-retry-btn" title="Refresh prices">🔄</span>
     </div>
   `;
 
@@ -234,6 +248,22 @@ async function processTile(tile) {
     const realOverlay = createOverlayElement(result, parsed);
     realOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
     loadingOverlay.replaceWith(realOverlay);
+    
+    // Wire retry button on successful overlays
+    const retryBtn = realOverlay.querySelector('.bpo-retry-btn');
+    if (retryBtn && !retryBtn._wired) {
+      retryBtn._wired = true;
+      retryBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const cacheKey = makeCacheKey(parsed);
+        await chrome.storage.local.remove(cacheKey);
+        const parentTile = realOverlay.closest('.marketplace-grid > *') || realOverlay.parentElement;
+        if (realOverlay._hiddenLangBar) realOverlay._hiddenLangBar.style.display = '';
+        realOverlay.remove();
+        processedTiles.delete(parentTile);
+        processTile(parentTile);
+      });
+    }
   } catch (err) {
     console.error('[BoxedOverlay] Error processing tile:', err);
     const errorOverlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
