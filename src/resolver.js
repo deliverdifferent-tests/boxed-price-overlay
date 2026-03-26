@@ -269,9 +269,11 @@ function extractPricesFromProductDoc(doc) {
         else if (label.includes('psa 9') || label.includes('psa9') || label === '9') prices.psa9 = price;
         else if (label.includes('psa 8') || label.includes('psa8') || label === '8') prices.psa8 = price;
         else if (label.includes('psa 7') || label.includes('psa7') || label === '7') prices.psa7 = price;
-        else if (label.includes('cgc 10') || label.includes('cgc10')) prices.cgc10 = price;
-        else if (label.includes('cgc 9') || label.includes('cgc9')) prices.cgc9 = price;
-        else if (label.includes('cgc 8') || label.includes('cgc8')) prices.cgc8 = price;
+        // CGC: "pristine 10" is different from regular "10" — use regular 10 by default
+        else if ((label.includes('cgc 10') || label.includes('cgc10')) && !label.includes('pristine')) prices.cgc10 = price;
+        else if (label.includes('cgc pristine') || label.includes('pristine 10')) prices.cgc10pristine = price;
+        else if ((label.includes('cgc 9') || label.includes('cgc9')) && !label.includes('pristine')) prices.cgc9 = price;
+        else if ((label.includes('cgc 8') || label.includes('cgc8')) && !label.includes('pristine')) prices.cgc8 = price;
         else if (label.includes('bgs 10') || label.includes('bgs10')) prices.bgs10 = price;
         else if (label.includes('bgs 9') || label.includes('bgs9')) prices.bgs9 = price;
         else if (label.includes('ungraded') || label.includes('raw')) prices.raw = price;
