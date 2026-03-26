@@ -207,13 +207,20 @@ function matchScore(resultText, parsed) {
   let score = 0;
   const text = resultText.toLowerCase();
   
-  if (parsed.cardName && text.includes(parsed.cardName.toLowerCase())) score += 2;
-  if (parsed.cardNumber && text.includes(parsed.cardNumber)) score += 2;
+  // Card number is the strongest signal — unique within a set
+  if (parsed.cardNumber && text.includes(parsed.cardNumber)) score += 3;
+  // Card name is very strong
+  if (parsed.cardName && text.includes(parsed.cardName.toLowerCase())) score += 3;
+  // Year helps disambiguate reprints
   if (parsed.year && text.includes(parsed.year.toString())) score += 1;
+  // Set name tokens
   if (parsed.setOrSeries) {
-    const setWords = parsed.setOrSeries.toLowerCase().split(' ');
-    const matchedWords = setWords.filter(w => w.length > 2 && text.includes(w));
-    score += matchedWords.length * 0.5;
+    const setWords = parsed.setOrSeries.toLowerCase().split(' ').filter(w => w.length > 2);
+    const matchedWords = setWords.filter(w => text.includes(w));
+    if (setWords.length > 0) {
+      // Proportional scoring: more matched set words = higher score
+      score += (matchedWords.length / setWords.length) * 3;
+    }
   }
   if (parsed.language === 'Japanese' && text.includes('japanese')) score += 1;
   

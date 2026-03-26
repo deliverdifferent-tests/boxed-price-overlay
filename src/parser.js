@@ -194,17 +194,29 @@ function parseCardTitle(rawTitle) {
   }
 
   // --- Confidence scoring ---
-  let score = 0;
-  if (result.year) score++;
-  if (result.franchise) score++;
-  if (result.cardNumber) score++;
-  if (result.cardName) score++;
-  if (result.gradeCompany) score++;
-  if (result.gradeValue !== null) score++;
+  // Set + card name + card number = unique card = exact match
+  const hasSet = result.setOrSeries && result.setOrSeries.length > 0;
+  const hasName = result.cardName && result.cardName.length > 0;
+  const hasNumber = result.cardNumber !== null;
+  const hasGrade = result.gradeCompany !== null && result.gradeValue !== null;
 
-  if (score >= 5) result.confidence = 'exact';
-  else if (score >= 3) result.confidence = 'likely';
-  else result.confidence = 'weak';
+  if (hasSet && hasNumber) {
+    // Set + number uniquely identifies a card
+    result.confidence = 'exact';
+  } else if (hasName && hasNumber) {
+    // Name + number is very strong
+    result.confidence = 'exact';
+  } else if (hasSet && hasName) {
+    // Set + name without number is still strong
+    result.confidence = 'exact';
+  } else if (hasNumber && result.year) {
+    // Number + year is decent
+    result.confidence = 'likely';
+  } else if (hasName) {
+    result.confidence = 'likely';
+  } else {
+    result.confidence = 'weak';
+  }
 
   return result;
 }
