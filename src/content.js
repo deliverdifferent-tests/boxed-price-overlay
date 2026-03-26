@@ -12,8 +12,8 @@
 // Actually MV3 supports multiple JS files in content_scripts — let's use that.)
 
 const SCAN_DEBOUNCE_MS = 500;
-const BATCH_SIZE = 5;
-const BATCH_DELAY_MS = 1200;
+const BATCH_SIZE = 2;
+const BATCH_DELAY_MS = 2500;
 
 let processedTiles = new WeakSet();
 let scanTimeout = null;
@@ -210,10 +210,10 @@ function truncate(str, len) {
 }
 
 /**
- * Inject the ? lookup button onto a card tile.
- * If the card is already cached, show prices immediately.
+ * Process a card tile — auto-lookup with throttling.
+ * Cached cards show instantly, uncached queue for lookup.
  */
-async function injectLookupButton(tile) {
+async function processCardTile(tile) {
   if (processedTiles.has(tile)) return;
   processedTiles.add(tile);
 
@@ -223,7 +223,7 @@ async function injectLookupButton(tile) {
   const parsed = parseCardTitle(title);
   if (!parsed) return;
 
-  // Find the language bar to place the button/overlay
+  // Find the language bar to place the overlay
   const langBar = tile.querySelector('.text-light-2');
   const langParent = langBar ? langBar.closest('div, span, p') : null;
   let hiddenLangBar = null;
@@ -248,42 +248,29 @@ async function injectLookupButton(tile) {
   const cached = await getCached(cacheKey);
   
   if (cached && cached.status === 'ok' && cached.prices && Object.keys(cached.prices).length > 0) {
-    // Cached! Show overlay directly, no click needed
     const overlay = createOverlayElement(cached, parsed);
     insertElement(overlay);
     wireRetryButton(overlay, parsed);
     return;
   }
-  
-  // Not cached — show ? button
-  const btn = document.createElement('div');
-  btn.className = 'bpo-lookup-btn';
-  btn.textContent = '?';
-  btn.title = 'Look up prices';
-  insertElement(btn);
-  
-  btn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    // Replace ? with loading
-    btn.textContent = '…';
-    btn.classList.add('bpo-loading');
-    
-    try {
-      const result = await resolvePrices(parsed);
-      const overlay = createOverlayElement(result, parsed);
-      overlay._hiddenLangBar = btn._hiddenLangBar;
-      btn.replaceWith(overlay);
-      wireRetryButton(overlay, parsed);
-    } catch (err) {
-      console.error('[BoxedOverlay] Error:', err);
-      const overlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
-      overlay._hiddenLangBar = btn._hiddenLangBar;
-      btn.replaceWith(overlay);
-      wireRetryButton(overlay, parsed);
-    }
-  });
+
+  // Show loading state
+  const loadingOverlay = createOverlayElement({ status: 'loading' }, parsed);
+  insertElement(loadingOverlay);
+
+  try {
+    const result = await resolvePrices(parsed);
+    const realOverlay = createOverlayElement(result, parsed);
+    realOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
+    loadingOverlay.replaceWith(realOverlay);
+    wireRetryButton(realOverlay, parsed);
+  } catch (err) {
+    console.error('[BoxedOverlay] Error:', err);
+    const errorOverlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
+    errorOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
+    loadingOverlay.replaceWith(errorOverlay);
+    wireRetryButton(errorOverlay, parsed);
+  }
 }
 
 /**
@@ -317,10 +304,10 @@ function wireRetryButton(overlay, parsed) {
 }
 
 /**
- * Legacy function name — now just injects the ? button.
+ * Process a tile (entry point).
  */
 async function processTile(tile) {
-  injectLookupButton(tile);
+  await processCardTile(tile);
 }
 
 /**
