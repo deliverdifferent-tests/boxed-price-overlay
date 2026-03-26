@@ -93,7 +93,8 @@ function extractGemPrice(tile) {
 }
 
 /**
- * Queue a tile for scanning.
+ * Queue a tile for deal scoring.
+ * The scanner piggybacks off the auto-loader's cache — it does NOT fetch on its own.
  */
 function queueForScan(tile) {
   if (!scannerEnabled) return;
@@ -103,7 +104,8 @@ function queueForScan(tile) {
 }
 
 /**
- * Process the scan queue one card at a time.
+ * Process the scan queue — reads from cache only, no new fetches.
+ * The auto-loader in content.js handles all fetching.
  */
 async function processQueue() {
   if (!scannerEnabled || scannerProcessing) return;
@@ -121,57 +123,75 @@ async function processQueue() {
     
     const gemPrice = extractGemPrice(tile);
     
-    try {
-      const result = await resolvePrices(parsed);
+    // Only use cached results — don't trigger new fetches
+    const cacheKey = makeCacheKey(parsed);
+    const cached = await getCached(cacheKey);
+    
+    if (cached && cached.status === 'ok' && cached.prices && gemPrice) {
       tile._scanDone = true;
       scannedCount++;
       
-      if (result.status === 'ok' && result.prices && gemPrice) {
-        // Find the matching grade price
-        const matchPrice = getMatchingPrice(result.prices, parsed);
+      const matchPrice = getMatchingPrice(cached.prices, parsed);
+      
+      if (matchPrice !== null && gemPrice > 0) {
+        const gemUsd = gemPrice * gemRate;
+        const spread = matchPrice - gemUsd;
+        const pctDeviation = ((matchPrice - gemUsd) / matchPrice) * 100;
         
-        if (matchPrice !== null && gemPrice > 0) {
-          const gemUsd = gemPrice * gemRate;
-          const spread = matchPrice - gemUsd;
-          const pctDeviation = ((matchPrice - gemUsd) / matchPrice) * 100;
-          
-          const deal = {
-            title: title.substring(0, 60),
-            cardName: parsed.cardName || 'Unknown',
-            cardNumber: parsed.cardNumber,
-            gradeCompany: parsed.gradeCompany,
-            gradeValue: parsed.gradeValue,
-            gemPrice,
-            gemUsd: Math.round(gemUsd * 100) / 100,
-            marketPrice: matchPrice,
-            spread: Math.round(spread * 100) / 100,
-            pctDeviation: Math.round(pctDeviation * 10) / 10,
-            isUnderpriced: gemUsd < matchPrice,
-            tile
-          };
-          
-          deals.push(deal);
-          // Sort: best deals (most underpriced) first
-          deals.sort((a, b) => b.pctDeviation - a.pctDeviation);
-          // Keep only top N
-          if (deals.length > MAX_DEALS) deals = deals.slice(0, MAX_DEALS);
-          
-          // Add badge to the tile
-          addDealBadge(tile, deal);
-        }
+        const deal = {
+          title: title.substring(0, 60),
+          cardName: parsed.cardName || 'Unknown',
+          cardNumber: parsed.cardNumber,
+          gradeCompany: parsed.gradeCompany,
+          gradeValue: parsed.gradeValue,
+          gemPrice,
+          gemUsd: Math.round(gemUsd * 100) / 100,
+          marketPrice: matchPrice,
+          spread: Math.round(spread * 100) / 100,
+          pctDeviation: Math.round(pctDeviation * 10) / 10,
+          isUnderpriced: gemUsd < matchPrice,
+          tile
+        };
+        
+        deals.push(deal);
+        deals.sort((a, b) => b.pctDeviation - a.pctDeviation);
+        if (deals.length > MAX_DEALS) deals = deals.slice(0, MAX_DEALS);
+        
+        addDealBadge(tile, deal);
       }
       
       updateLeaderboard();
-    } catch (err) {
+    } else if (!cached) {
+      // Not cached yet — re-queue to check later
+      tile._scanQueued = false;
+      tile._scanDone = false;
+    } else {
       tile._scanDone = true;
       scannedCount++;
+      updateLeaderboard();
     }
     
-    // Throttle
-    await new Promise(r => setTimeout(r, SCAN_RATE_MS));
+    // Small delay between checks
+    await new Promise(r => setTimeout(r, 200));
   }
   
   scannerProcessing = false;
+  
+  // Re-check unfinished tiles after a delay (waiting for auto-loader to cache them)
+  const unfinished = document.querySelectorAll('.marketplace-grid > *');
+  let hasUnscanned = false;
+  unfinished.forEach(t => {
+    if (!t._scanDone && !t._scanQueued) hasUnscanned = true;
+  });
+  if (hasUnscanned && scannerEnabled) {
+    setTimeout(() => {
+      const grid = findMarketplaceGrid();
+      if (grid) {
+        findCardTiles(grid).forEach(t => queueForScan(t));
+        processQueue();
+      }
+    }, 3000);
+  }
 }
 
 /**
