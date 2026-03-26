@@ -12,8 +12,10 @@
 // Actually MV3 supports multiple JS files in content_scripts — let's use that.)
 
 const SCAN_DEBOUNCE_MS = 500;
-const BATCH_SIZE = 2;
-const BATCH_DELAY_MS = 2500;
+const BATCH_SIZE = 3;
+const BATCH_DELAY_MS = 800;
+const BATCH_DELAY_FRESH_MS = 2500; // Slower on fresh lookups (non-cached)
+let freshLookupCount = 0;
 
 let processedTiles = new WeakSet();
 let scanTimeout = null;
@@ -254,7 +256,8 @@ async function processCardTile(tile) {
     return;
   }
 
-  // Show loading state
+  // Show loading state — this is a fresh (non-cached) lookup
+  freshLookupCount++;
   const loadingOverlay = createOverlayElement({ status: 'loading' }, parsed);
   insertElement(loadingOverlay);
 
@@ -330,13 +333,17 @@ async function scanAndProcess() {
 
   console.log(`[BoxedOverlay] Processing ${unprocessed.length} new card tiles`);
 
-  // Process in batches to avoid hammering
+  // Process in batches — fast for cached, slower for fresh lookups
   for (let i = 0; i < unprocessed.length; i += BATCH_SIZE) {
     const batch = unprocessed.slice(i, i + BATCH_SIZE);
+    const beforeFresh = freshLookupCount;
     await Promise.all(batch.map(tile => processTile(tile)));
+    const hadFreshLookups = freshLookupCount > beforeFresh;
     
     if (i + BATCH_SIZE < unprocessed.length) {
-      await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+      // If this batch had fresh (non-cached) lookups, slow down
+      const delay = hadFreshLookups ? BATCH_DELAY_FRESH_MS : BATCH_DELAY_MS;
+      await new Promise(r => setTimeout(r, delay));
     }
   }
 }
