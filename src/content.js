@@ -13,7 +13,7 @@
 
 const SCAN_DEBOUNCE_MS = 500;
 const BATCH_SIZE = 3;
-const BATCH_DELAY_MS = 1000;
+const BATCH_DELAY_MS = 300;
 let freshLookupCount = 0;
 
 let processedTiles = new WeakSet();
