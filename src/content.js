@@ -13,8 +13,7 @@
 
 const SCAN_DEBOUNCE_MS = 500;
 const BATCH_SIZE = 3;
-const BATCH_DELAY_MS = 800;
-const BATCH_DELAY_FRESH_MS = 2500; // Slower on fresh lookups (non-cached)
+const BATCH_DELAY_MS = 1000;
 let freshLookupCount = 0;
 
 let processedTiles = new WeakSet();
@@ -333,17 +332,13 @@ async function scanAndProcess() {
 
   console.log(`[BoxedOverlay] Processing ${unprocessed.length} new card tiles`);
 
-  // Process in batches — fast for cached, slower for fresh lookups
+  // Process in batches — flat 1s between all batches
   for (let i = 0; i < unprocessed.length; i += BATCH_SIZE) {
     const batch = unprocessed.slice(i, i + BATCH_SIZE);
-    const beforeFresh = freshLookupCount;
     await Promise.all(batch.map(tile => processTile(tile)));
-    const hadFreshLookups = freshLookupCount > beforeFresh;
     
     if (i + BATCH_SIZE < unprocessed.length) {
-      // If this batch had fresh (non-cached) lookups, slow down
-      const delay = hadFreshLookups ? BATCH_DELAY_FRESH_MS : BATCH_DELAY_MS;
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
     }
   }
 }
