@@ -60,6 +60,23 @@
   font-size: 12px;
 }
 
+.bpo-price-value.bpo-highlight {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.bpo-price-label.bpo-highlight-label {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.bpo-price-item.bpo-card-grade {
+  background: rgba(239, 68, 68, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 .bpo-price-value.bpo-na {
   color: #666;
   font-weight: 400;

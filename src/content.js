@@ -139,28 +139,32 @@ function createOverlayElement(result, parsed) {
   // Raw price
   priceHtml += priceItem('Raw', prices.raw);
   
+  // Determine which grade is the card's actual grade
+  const cardGrade = parsed.gradeValue;
+  const cardCompany = (parsed.gradeCompany || '').toUpperCase();
+  
   // Primary company prices (the one matching the card's grading)
   if (isCompanyPSA || (!isCompanyCGC)) {
-    priceHtml += priceItem('PSA 8', prices.psa8);
-    priceHtml += priceItem('PSA 9', prices.psa9);
-    priceHtml += priceItem('PSA 10', prices.psa10, true);
+    priceHtml += priceItem('PSA 8', prices.psa8, false, cardCompany === 'PSA' && cardGrade === 8);
+    priceHtml += priceItem('PSA 9', prices.psa9, false, cardCompany === 'PSA' && cardGrade === 9);
+    priceHtml += priceItem('PSA 10', prices.psa10, false, cardCompany === 'PSA' && cardGrade === 10);
   }
   
   if (isCompanyCGC) {
-    priceHtml += priceItem('CGC 8', prices.cgc8);
-    priceHtml += priceItem('CGC 9', prices.cgc9);
-    priceHtml += priceItem('CGC 10', prices.cgc10, true);
+    priceHtml += priceItem('CGC 8', prices.cgc8, false, cardCompany === 'CGC' && cardGrade === 8);
+    priceHtml += priceItem('CGC 9', prices.cgc9, false, cardCompany === 'CGC' && cardGrade === 9);
+    priceHtml += priceItem('CGC 10', prices.cgc10, false, cardCompany === 'CGC' && cardGrade === 10);
   }
   
   // Show alternate company if available and not primary
   if (isCompanyPSA && (prices.cgc9 || prices.cgc10)) {
     priceHtml += '<span class="bpo-sep">|</span>';
-    priceHtml += priceItem('CGC 9', prices.cgc9);
-    priceHtml += priceItem('CGC 10', prices.cgc10);
+    priceHtml += priceItem('CGC 9', prices.cgc9, false, false);
+    priceHtml += priceItem('CGC 10', prices.cgc10, false, false);
   } else if (isCompanyCGC && (prices.psa9 || prices.psa10)) {
     priceHtml += '<span class="bpo-sep">|</span>';
-    priceHtml += priceItem('PSA 9', prices.psa9);
-    priceHtml += priceItem('PSA 10', prices.psa10);
+    priceHtml += priceItem('PSA 9', prices.psa9, false, false);
+    priceHtml += priceItem('PSA 10', prices.psa10, false, false);
   }
   
   priceHtml += '</div>';
@@ -185,12 +189,16 @@ function createOverlayElement(result, parsed) {
 /**
  * Helper: render a single price item.
  */
-function priceItem(label, value, isPrimary = false) {
+function priceItem(label, value, isPrimary = false, isCardGrade = false) {
   if (value === null || value === undefined) {
-    return `<span class="bpo-price-item"><span class="bpo-price-label">${label}</span><span class="bpo-price-value bpo-na">—</span></span>`;
+    const labelCls = isCardGrade ? 'bpo-price-label bpo-highlight-label' : 'bpo-price-label';
+    return `<span class="bpo-price-item${isCardGrade ? ' bpo-card-grade' : ''}"><span class="${labelCls}">${label}</span><span class="bpo-price-value bpo-na">—</span></span>`;
   }
-  const cls = isPrimary ? 'bpo-price-value bpo-primary' : 'bpo-price-value';
-  return `<span class="bpo-price-item"><span class="bpo-price-label">${label}</span><span class="${cls}">$${value.toFixed(0)}</span></span>`;
+  let cls = 'bpo-price-value';
+  if (isCardGrade) cls += ' bpo-highlight';
+  else if (isPrimary) cls += ' bpo-primary';
+  const labelCls = isCardGrade ? 'bpo-price-label bpo-highlight-label' : 'bpo-price-label';
+  return `<span class="bpo-price-item${isCardGrade ? ' bpo-card-grade' : ''}"><span class="${labelCls}">${label}</span><span class="${cls}">$${value.toFixed(0)}</span></span>`;
 }
 
 function escapeHtml(str) {
