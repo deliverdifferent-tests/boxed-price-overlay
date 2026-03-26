@@ -314,17 +314,36 @@ function setupObserver() {
 function init() {
   console.log('[BoxedOverlay] Initializing on', window.location.href);
   
-  // Initial scan
-  scanAndProcess();
-  
   // Watch for new cards
   setupObserver();
+  
+  // Retry initial scan — Boxed.gg renders cards asynchronously
+  let retries = 0;
+  const maxRetries = 20;
+  
+  function tryInitialScan() {
+    const grid = findMarketplaceGrid();
+    const tiles = grid ? findCardTiles(grid) : [];
+    const unprocessed = tiles.filter(t => !processedTiles.has(t));
+    
+    if (unprocessed.length > 0) {
+      console.log(`[BoxedOverlay] Found ${unprocessed.length} cards on attempt ${retries + 1}`);
+      scanAndProcess();
+    } else if (retries < maxRetries) {
+      retries++;
+      setTimeout(tryInitialScan, 800);
+    } else {
+      console.log('[BoxedOverlay] No cards found after', maxRetries, 'attempts — waiting for scroll/mutations');
+    }
+  }
+  
+  tryInitialScan();
   
   // Also re-scan on scroll (backup for lazy-loaded content)
   let scrollTimeout;
   window.addEventListener('scroll', () => {
     if (scrollTimeout) clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(triggerScan, 1000);
+    scrollTimeout = setTimeout(triggerScan, 800);
   }, { passive: true });
 }
 
@@ -358,8 +377,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Wait for DOM to be ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
 } else {
-  // Small delay to let Boxed.gg's JS render the marketplace
-  setTimeout(init, 1500);
+  setTimeout(init, 500);
 }
