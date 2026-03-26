@@ -211,7 +211,9 @@ function buildSearchQuery(parsed) {
   if (parsed.language && parsed.language !== 'English') parts.push(parsed.language);
   if (parsed.setOrSeries) parts.push(parsed.setOrSeries);
   if (parsed.cardName) parts.push(parsed.cardName);
-  if (parsed.cardNumber) parts.push(`#${parsed.cardNumber}`);
+  if (parsed.cardNumber) parts.push(parsed.cardNumber);
+  // NOTE: Do NOT include gradeCompany or gradeValue in the search query.
+  // PriceCharting searches by card, not by grade. Grade is used for price column selection.
   
   return parts.join(' ').replace(/\s+/g, ' ').trim();
 }
@@ -223,7 +225,18 @@ function buildSearchQuery(parsed) {
  */
 function buildPriceChartingSearchUrl(parsed) {
   const query = buildSearchQuery(parsed);
+  // Use type=prices for Pokemon card pricing
   return `https://www.pricecharting.com/search-products?q=${encodeURIComponent(query)}&type=prices`;
+}
+
+/**
+ * Build a Google search URL targeting PriceCharting.
+ * @param {object} parsed - Output from parseCardTitle
+ * @returns {string} Google search URL
+ */
+function buildGoogleSearchUrl(parsed) {
+  const query = buildSearchQuery(parsed);
+  return `https://www.google.com/search?q=${encodeURIComponent(query + ' site:pricecharting.com')}`;
 }
 
 // Export for use in content script
