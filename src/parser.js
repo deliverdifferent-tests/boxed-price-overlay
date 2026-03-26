@@ -126,18 +126,30 @@ function parseCardTitle(rawTitle) {
     workingTitle = workingTitle.replace(new RegExp(`\\b${result.language}\\b`, 'gi'), '').trim();
   }
 
-  // Remove grade section (company + number + fluff)
+  // Remove the entire grade tail: company + number + all fluff words
   if (result.gradeCompany) {
-    const gradePattern = new RegExp(
-      `\\b${result.gradeCompany}\\s+${result.gradeValue}\\b[\\s]*(${GRADE_FLUFF.join('|')})*`,
-      'gi'
-    );
-    workingTitle = workingTitle.replace(gradePattern, '').trim();
+    // Remove everything from the grade company to the end of the string
+    const gradeIdx = workingTitle.toUpperCase().lastIndexOf(result.gradeCompany);
+    if (gradeIdx >= 0) {
+      workingTitle = workingTitle.substring(0, gradeIdx).trim();
+    } else {
+      // Fallback: regex removal
+      const gradePattern = new RegExp(
+        `\\b${result.gradeCompany}\\s+${result.gradeValue}\\b.*$`,
+        'gi'
+      );
+      workingTitle = workingTitle.replace(gradePattern, '').trim();
+    }
+  }
+  
+  // Also strip any remaining standalone grade fluff words
+  for (const fluff of GRADE_FLUFF) {
+    workingTitle = workingTitle.replace(new RegExp(`\\b${fluff}\\b`, 'gi'), '').trim();
   }
 
-  // Remove card number
+  // Remove card number (with or without #)
   if (result.cardNumber) {
-    workingTitle = workingTitle.replace(`#${result.cardNumber}`, '').trim();
+    workingTitle = workingTitle.replace(new RegExp(`#?\\b${result.cardNumber}\\b`, 'g'), '').trim();
   }
 
   // Clean up extra whitespace
