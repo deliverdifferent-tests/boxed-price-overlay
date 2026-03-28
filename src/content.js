@@ -249,30 +249,42 @@ async function processCardTile(tile) {
   const cached = await getCached(cacheKey);
   
   if (cached && cached.status === 'ok' && cached.prices && Object.keys(cached.prices).length > 0) {
+    // Cached — auto-show
     const overlay = createOverlayElement(cached, parsed);
     insertElement(overlay);
     wireRetryButton(overlay, parsed);
     return;
   }
 
-  // Show loading state — this is a fresh (non-cached) lookup
-  freshLookupCount++;
-  const loadingOverlay = createOverlayElement({ status: 'loading' }, parsed);
-  insertElement(loadingOverlay);
-
-  try {
-    const result = await resolvePrices(parsed);
-    const realOverlay = createOverlayElement(result, parsed);
-    realOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
-    loadingOverlay.replaceWith(realOverlay);
-    wireRetryButton(realOverlay, parsed);
-  } catch (err) {
-    console.error('[BoxedOverlay] Error:', err);
-    const errorOverlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
-    errorOverlay._hiddenLangBar = loadingOverlay._hiddenLangBar;
-    loadingOverlay.replaceWith(errorOverlay);
-    wireRetryButton(errorOverlay, parsed);
-  }
+  // Not cached — show ? button for manual lookup
+  const btn = document.createElement('div');
+  btn.className = 'bpo-lookup-btn';
+  btn.textContent = '?';
+  btn.title = 'Look up prices';
+  insertElement(btn);
+  
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Replace ? with loading
+    btn.textContent = '…';
+    btn.classList.add('bpo-loading');
+    
+    try {
+      const result = await resolvePrices(parsed);
+      const overlay = createOverlayElement(result, parsed);
+      overlay._hiddenLangBar = btn._hiddenLangBar;
+      btn.replaceWith(overlay);
+      wireRetryButton(overlay, parsed);
+    } catch (err) {
+      console.error('[BoxedOverlay] Error:', err);
+      const overlay = createOverlayElement({ status: 'error', sourceUrl: buildPriceChartingSearchUrl(parsed) }, parsed);
+      overlay._hiddenLangBar = btn._hiddenLangBar;
+      btn.replaceWith(overlay);
+      wireRetryButton(overlay, parsed);
+    }
+  });
 }
 
 /**
