@@ -20,10 +20,16 @@ let processedTiles = new WeakSet();
 let scanTimeout = null;
 let extensionEnabled = true;
 
+function isContextValid() {
+  try { return !!chrome.runtime?.id; } catch (e) { return false; }
+}
+
 // Load saved enabled state
-chrome.storage.local.get('bpo_enabled', (data) => {
-  extensionEnabled = data.bpo_enabled !== false;
-});
+try {
+  chrome.storage.local.get('bpo_enabled', (data) => {
+    extensionEnabled = data.bpo_enabled !== false;
+  });
+} catch (e) {}
 
 /**
  * Find the marketplace grid container.
@@ -296,8 +302,9 @@ function wireRetryButton(overlay, parsed) {
     retryBtn._wired = true;
     retryBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (!isContextValid()) return;
       const cacheKey = makeCacheKey(parsed);
-      await chrome.storage.local.remove(cacheKey);
+      try { await chrome.storage.local.remove(cacheKey); } catch (e) { return; }
       
       // Replace overlay with loading state
       overlay.innerHTML = '<span class="bpo-loading-text">Loading prices…</span>';

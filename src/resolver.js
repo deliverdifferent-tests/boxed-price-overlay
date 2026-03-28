@@ -15,7 +15,12 @@ let activeRequests = 0;
 /**
  * Check cache for a previously resolved card.
  */
+function isContextValid() {
+  try { return !!chrome.runtime?.id; } catch (e) { return false; }
+}
+
 async function getCached(cacheKey) {
+  if (!isContextValid()) return null;
   try {
     const data = await chrome.storage.local.get(cacheKey);
     if (data[cacheKey]) {
@@ -25,7 +30,7 @@ async function getCached(cacheKey) {
       }
     }
   } catch (e) {
-    console.warn('[BoxedOverlay] Cache read error:', e);
+    // Silently fail if extension context is invalidated
   }
   return null;
 }
@@ -34,11 +39,12 @@ async function getCached(cacheKey) {
  * Write to cache.
  */
 async function setCache(cacheKey, value) {
+  if (!isContextValid()) return;
   try {
     const entry = { ...value, timestamp: Date.now() };
     await chrome.storage.local.set({ [cacheKey]: entry });
   } catch (e) {
-    console.warn('[BoxedOverlay] Cache write error:', e);
+    // Silently fail
   }
 }
 
@@ -76,6 +82,11 @@ async function resolvePrices(parsed) {
   const searchUrl = buildPriceChartingSearchUrl(parsed);
   
   try {
+    // Check context before fetching
+    if (!isContextValid()) {
+      return { status: 'search_only', confidence: 'weak', prices: {}, sourceUrl: searchUrl };
+    }
+    
     // Use background script to fetch (avoids CORS)
     const response = await chrome.runtime.sendMessage({
       type: 'FETCH_URL',
